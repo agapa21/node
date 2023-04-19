@@ -1,4 +1,4 @@
 FROM builder:latest
 
-WORKDIR /node/
+WORKDIR /node.js/
 RUN npm run test
