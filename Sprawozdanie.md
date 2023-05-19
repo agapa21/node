@@ -90,69 +90,37 @@ Tworzę plik konfiguracyjny dla wdrożenia Kubernetes:
 apiVersion: apps/v1
 
 kind: Deployment
-
 metadata:
-
   annotations:
-
     kompose.cmd: kompose convert -f httpdbs.yml
-
     kompose.version: 1.22.0 (955b78124)
-
   creationTimestamp: null
-
   labels:
-
     io.kompose.service: httpd
-
   name: httpd
-
 spec:
-
   replicas: 0
-
   selector:
-
     matchLabels:
-
       io.kompose.service: httpd
-
   strategy: 
-
     type: Recreate     
-
   template:
-
     metadata:
-
       annotations:
-
         kompose.cmd: kompose convert -f httpdbs.yml
-
         kompose.version: 1.22.0 (955b78124)
-
       creationTimestamp: null
-
       labels:
-
         io.kompose.service: httpd
-
     spec:
-
       containers:
-
         - image: httpd:bullseye
-
           name: httpd
-
           ports:
-
             - containerPort: 80
-
           resources: {}
-
       restartPolicy: Always
-
 status: {}
 ```
 
