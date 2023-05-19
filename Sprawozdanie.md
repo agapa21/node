@@ -83,18 +83,166 @@ Przekierowuje na odpowiedni port:
 
 ![image](pngs/16.PNG)
 
+Tworzę plik konfiguracyjny dla wdrożenia Kubernetes:
+- służy do zdefiniowania i opisania sposobu uruchomienia usługi w klastrze. W pliku określa się parametry takie jak liczba replik, obraz kontenera, porty do nasłuchiwania i inne właściwości potrzebne do poprawnego wdrożenia aplikacji.
 
+```bash
+apiVersion: apps/v1
 
+kind: Deployment
 
+metadata:
 
+  annotations:
 
+    kompose.cmd: kompose convert -f httpdbs.yml
 
+    kompose.version: 1.22.0 (955b78124)
 
+  creationTimestamp: null
 
+  labels:
 
+    io.kompose.service: httpd
 
+  name: httpd
 
+spec:
 
+  replicas: 0
 
+  selector:
 
+    matchLabels:
 
+      io.kompose.service: httpd
+
+  strategy: 
+
+    type: Recreate     
+
+  template:
+
+    metadata:
+
+      annotations:
+
+        kompose.cmd: kompose convert -f httpdbs.yml
+
+        kompose.version: 1.22.0 (955b78124)
+
+      creationTimestamp: null
+
+      labels:
+
+        io.kompose.service: httpd
+
+    spec:
+
+      containers:
+
+        - image: httpd:bullseye
+
+          name: httpd
+
+          ports:
+
+            - containerPort: 80
+
+          resources: {}
+
+      restartPolicy: Always
+
+status: {}
+```
+
+Wdrażam definicję zasobu zawarte w pliku poleceniem `kubectl apply`:
+
+![image](pngs/18.PNG)
+
+Po wykonaniu wdrożenia aplikacji lub aktualizacji jej konfiguracji, komenda "kubectl rollout status" umożliwia sprawdzenie postępu procesu wdrożenia.
+
+![image](pngs/19.PNG)
+
+# Zmiany w deploymencie
+
+- obraz wzbogacony o 4 repliki:
+
+![image](pngs/20.PNG)
+
+![image](pngs/25.PNG)
+
+- zmniejszenie liczby replik do 1:
+
+![image](pngs/26.PNG)
+
+- zmniejszenie liczby replik do 0:
+
+![image](pngs/27.PNG)
+
+- zastosowanie starszej wersji obrazu:
+
+![image](pngs/23.PNG)
+
+![image](pngs/22.PNG)
+
+- zastosowanie nowszej wersji obrazu:
+
+![image](pngs/21.PNG)
+
+- zastosowanie polecenia `kubectl rollout history`:
+  - służy ona do wyświetlania historii wersji wdrożeń
+
+![image](pngs/28.PNG)
+
+- zastosowanie polecenia `kubectl rollout undo`:
+  - służy do cofania ostatniej aktualizacji wdrożenia
+  
+ ![image](pngs/29.PNG) 
+  
+# Kontrola wdrożenia
+Skrypt weryfikujący, czy wdrożenie "zdążyło" się wdrożyć w 60 sekund:
+
+```bash
+#!/bin/bash
+
+kubectl apply -f httpd-deployment.yaml
+sleep 60
+check=$(kubectl rollout status deployment/httpd)
+
+if [[ "$check" = *"successfully"* ]];
+then
+        echo "good news :)"
+        kubectl rollout status deployment httpd
+else
+        echo "bad news :("
+        kubectl rollout status deployment httpd
+        kubectl rollout undo deployment httpd
+fi
+```
+
+![image](pngs/30.PNG)
+
+# Strategie wdrożenia
+Kubernetes oferuje różne strategie wdrożeń, które pozwalają kontrolować sposób, w jaki wdrożenia są aktualizowane i zarządzane.
+
+Stworzenie wersji wdrożeń stosujące następujące strategie:
+
+![image](pngs/34.PNG)
+
+- Recreate:
+  - W strategii "Recreate", całe istniejące wdrożenie jest zatrzymywane i usuwane, a następnie tworzone jest nowe wdrożenie z zaktualizowaną wersją aplikacji. Ta strategia powoduje okresową niedostępność aplikacji podczas procesu aktualizacji.
+  
+![image](pngs/31.PNG)
+  
+- Rolling Update:
+  - Jest to domyślna strategia wdrożenia w Kubernetes. Polega na stopniowym aktualizowaniu replik wdrożenia, jednocześnie zatrzymując i uruchamiając nowe repliki z nową wersją aplikacji. To pozwala na płynne przejście do nowej wersji, minimalizując czas niedostępności aplikacji.
+  
+![image](pngs/32.PNG)
+
+- Canary Deployment:
+  - Ta strategia polega na wprowadzeniu nowej wersji aplikacji tylko dla małej grupy użytkowników. Pozwala na testowanie nowej wersji w rzeczywistych warunkach przed pełnym wdrożeniem. Jeśli nowa wersja jest stabilna i nie powoduje problemów, może być stopniowo wdrażana dla większej liczby użytkowników.
+
+Tak więc w tym przypadku, wdrożone są dwa deploymenty na raz. Jeden z najnowszą wersją usługi, drugi zaś ze starą wersją.
+
+![image](pngs/33.PNG)
